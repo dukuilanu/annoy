@@ -5,16 +5,19 @@
 #define BODS 7                   //BOD Sleep bit in MCUCR
 #define BODSE 2                  //BOD Sleep enable bit in MCUCR
 
-unsigned long watchdogTimer = 300 / 8; // alarm time - 5 minutes / 8 sec wdt; reset randomly
+unsigned long watchdogTimer = 180 / 8; // alarm time - 3 minutes / 8 sec wdt; reset randomly
 unsigned long startTime = 0;        // start time
+unsigned long initDelay = 150; //initial delay before starting routine, default is 20 minutes
 uint8_t mcucr1, mcucr2;
 volatile uint32_t toggle_count;
+int toneLength = 400;
+bool initDelayToggle = 0;
 
 ISR(WDT_vect) {
   //dummy callback, we just want the interrupt
 }
 
-void TrinketTone(uint32_t duration)
+void trinketTone(uint32_t duration)
 {
  uint32_t ocr = 250;
  uint8_t prescalarBits = 2;
@@ -66,21 +69,26 @@ void setup()
   pinMode(1, OUTPUT);
   adc_disable(); // ADC uses ~320uA
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  delay(150);
-  TrinketTone(50);
-  delay(1000);
+  delay(500);
+  trinketTone(20);
+  delay(250);
+  pinMode(1, INPUT);
 }
 
 void loop()
 {
+  if (initDelayToggle == 0) {
+    initDelayToggle = 1;
+    watchdogTimer = initDelay;
+  }
   if (startTime >= watchdogTimer) {
     pinMode(1, OUTPUT);
     delay(500);
-    TrinketTone(150);
+    trinketTone(toneLength);
     delay(250);
     pinMode(1, INPUT);
     startTime = 0;
-    watchdogTimer = random(38, 76);
+    watchdogTimer = random(23, 45);
   } else {
     startTime++;
   }
